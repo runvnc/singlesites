@@ -1,0 +1,4 @@
+#!/bin/bash
+pkill -f bouncy
+nohup bouncy routes.json 8080 &
+
