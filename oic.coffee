@@ -16,6 +16,8 @@ users = [
   { id: 2, username: 'joe', password: 'birthday', email: 'joe@example.com' }
 ]
 
+launchcodes = {}
+
 
 findById = (id, fn) ->
   console.log 'find by id'
@@ -71,10 +73,10 @@ app = express.createServer()
 app.configure ->
   app.use express.cookieParser()
   app.use express.bodyParser()
-  app.use express.session({ secret: 'choc rain' })
-  app.use passport.initialize()
-  app.use passport.session()
-  app.use app.router
+#  app.use express.session({ secret: 'choc rain' })
+#  app.use passport.initialize()
+#  app.use passport.session()
+#  app.use app.router
 
 
 checkbasic = (site, req, res, callback) ->
@@ -113,8 +115,13 @@ sendbad = (site, res) ->
 
 
 sendsite = (site, res) ->
+  console.log 'handling site sendsite ' + site
   fs.readFile 'public/' + site + '.html', 'utf8', (err, data) ->
-    res.send data
+    if err?  
+      console.log 'error in sendsite ' + err
+    else
+      console.log 'sending data'
+      res.send data
 
 makepass = (site, req, res) ->
   fs.readFile 'makepass.html', 'utf8', (err, data) ->
@@ -129,13 +136,15 @@ ensureAuthenticated = (req, res, next) ->
 
 which = (req, res) ->
   tokens = req.headers.host.split('.')
-  if tokens.length is 2
+  if tokens.length is 2 or tokens.length is 1
     site = 'www'
     console.log 'trying to call guid'
     code = process.guid()
+    console.log 'assigned launchedcode'
     launchcodes[code] = true
     res.cookie 'referred', code
   else
+    console.log 'did not assign launch code this time'
     site = tokens[0]
   return site
 
@@ -165,13 +174,13 @@ launch = (template, sitename, req, res) ->
     console.log 'launchcodes:'
     console.log launchcodes
 
-launchcodes = {}
-
 app.post '/launch', (req, res) ->
   launch req.body.template, req.body.site, req, res
 
 app.get '/', (req, res) ->
+  console.log 'get ok'
   site = which req, res
+  console.log 'site is ' + site
   sendsite site, res
 
 app.get '/editok', (req, res) ->
