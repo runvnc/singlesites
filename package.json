@@ -2,6 +2,9 @@
   "name": "oiceditor",
   "version": "0.0.1",
   "dependencies": {
-    "express": ""
+    "express": "2.x",
+    "passport":"",
+    "passport-google":""
+  
   }
 }

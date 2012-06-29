@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<link href='http://fonts.googleapis.com/css?family=Pontano+Sans' rel='stylesheet' type='text/css'>
+<style>
+body, p, input, th, td, div, span, h1, h2, h3, article, section {
+  font-family: 'Pontanto Sans', sans-serif;
+}
+</style>
+<title>OIC</title>
+</head>
+
+<body>
+<form method="post" action="launch">
+Enter site name:
+<input type="text" id="site" name="site"/>
+<br/><br/>
+Choose Template:
+
+<input type="hidden" name="template" value="asite"/>
+(Blank)
+
+<input type="submit" value="Launch Site"/>
+
+</form>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script>
+//  $(document).ready(function() {
+//    $('#launcher').click(function() {
+//      $.post('/launch', {sitename: $('#site').val()} , (res) 
+//    });
+//  });
+</script>
+</body>
+</html>
+
