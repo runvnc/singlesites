@@ -1,0 +1,117 @@
+<!DOCTYPE html><html><head>
+<link rel="stylesheet" href="cm/lib/codemirror.css">
+<title>Test Super Test site</title>
+<style type="text/css">
+  body {
+    margin: 20px; 
+  }
+.editcode {
+  position: fixed;
+  top: 3px;
+  right: 10px;
+}
+.savecode {
+  position: fixed;
+  right: 10px;
+  top: 3px;
+}
+
+.edit {
+    position: fixed;
+    right: 150px;
+    top: 3px;
+}
+
+.save {
+    position: fixed;
+    right: 150px;
+    top: 3px;
+}
+  
+.editcode, .savecode, .save {
+  display: none;    
+}
+
+.design {
+  display: none;
+}
+  
+</style>
+<style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style></head>
+
+<body>
+<a class="edit" style="display: none; ">Edit</a> <button class="save design" style="display: block; ">Save</button><button class="editcode design" style="display: block; ">Edit Code</button><button class="savecode design" style="display: none; ">Save Code</button>
+
+  <h1>New Site</h1>
+  
+  <p>This is some text.</p>
+
+  
+<script src="cm/lib/codemirror.js"></script>
+<script src="cm/mode/xml/xml.js"></script>
+<script src="cm/mode/javascript/javascript.js"></script>
+<script src="cm/mode/css/css.js"></script>
+<script src="cm/mode/htmlmixed/htmlmixed.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script>
+
+function save() {
+  $.post('savecode', { html: $('html').html() }, function(res) {
+    $('.editcode').hide();
+    $('.edit').show();
+    $('.editcode').attr('style', '');
+    $('.save').hide();
+    alert(res);
+  });
+}  
+  
+function code() {
+  if ($('.CodeMirror').length <= 0) {
+    document.designMode = 'off';
+    save();
+    myCodeMirror = CodeMirror(document.body, {
+       value: '<!doctype html><html>' + $('html').html() + '</html>',
+       mode: 'htmlmixed'
+     });
+    $('.editcode').hide()
+    $('.savecode').show();
+    $('.savecode').click(function() {
+      $('.editcode').hide();
+      $('.CodeMirror').hide();
+      $('.design').hide();
+      $('.editcode').attr('style', '');
+      $('.savecode').hide();
+      $.post('savecode', { html: myCodeMirror.getValue() }, function(res) {
+        alert(res);
+      }); 
+    });
+  }
+}
+
+$(document).ready(function() {
+  $('.edit').show();
+  $('.edit').click(function() {
+    window.location.href = '/edit';
+  });
+  $('.design').hide();
+ 
+  if (window.location.href.indexOf('/edit') > 0) {
+    $('.editcode').hide()
+    $('.edit').hide();
+    $('.edit').hide()
+    $('.save').show();
+    $('.save').click(save);            
+    
+    document.designMode = 'on';
+    $('.editcode').show();
+    $('.editcode').click(function() {
+      code();          
+    });   
+  }  
+});
+   
+</script>
+
+
+
+</body></html>
