@@ -3,7 +3,7 @@ express = require 'express'
 fs = require 'fs'
 path = require 'path'
 passport = require 'passport'
-GoogleStrategy = require('passport-google').Strategy
+LocalStrategy = require('passport-local').Strategy
 util = require 'util'
 
 domain = 'oic.io'
@@ -14,9 +14,11 @@ process.guid = -> S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4()
 users = [
   { id: 1, username: 'bob', password: 'secret', email: 'bob@example.com' }
   { id: 2, username: 'joe', password: 'birthday', email: 'joe@example.com' }
+]
 
 
 findById = (id, fn) ->
+  console.log 'find by id'
   idx = id - 1
   if users[idx]?
     fn null, users[idx]
@@ -25,34 +27,37 @@ findById = (id, fn) ->
   
 
 findByUsername = (username, fn) ->
+  console.log  'inside of findbyusername'
   for user in users
     if user.username is username
       return fn(null, user)
   return fn(null, null)
 
 
-passport.serializeUser (user, done) ->
+passport.serializeUser = (user, done) ->
+  console.log 'serializeuser'
   done null, user.id
 
 
-passport.deserializeUser (id, done) ->
+passport.deserializeUser = (id, done) ->
+  console.log 'deserializeuser'
   findById id, (err, user) ->
     done err, user
   
 
-passportopts =
-  returnURL: 'http://oic.io/auth/google/return'
-  realm: 'http://*.oic.io/'
-
 passportfunc = (username, password, done) ->
+  console.log 'inside of passportfunc'
+  return
   process.nextTick ->
+    console.log 'nexttick'
     findByUsername username, (err, user) ->
-    if err? then return done(err)
-    if not user? then return done(null, false, {message: 'Unknown user ' + username})
-    if user.password isnt password then return done(null, false, {message: 'Invalid password'})
-    return done(null, user)
+      console.log 'findbyusername returned'
+      if err? then return done(err)
+      if not user? then return done(null, false, {message: 'Unknown user ' + username})
+      if user.password isnt password then return done(null, false, {message: 'Invalid password'})
+      return done(null, user)
 
-passport.use new LocalStrategy(passportfunc)
+passport.use(new LocalStrategy(passportfunc))
  
 
 #httpsopts =
@@ -63,13 +68,13 @@ passport.use new LocalStrategy(passportfunc)
 
 app = express.createServer()
 
-app.use express.bodyParser()
-app.use express.cookieParser()
-app.use express.methodOverride()
-app.use express.session({ secret: 'choc rain' })
-app.use passport.initialize()
-app.use passport.session()
-app.use app.router
+app.configure ->
+  app.use express.cookieParser()
+  app.use express.bodyParser()
+  app.use express.session({ secret: 'choc rain' })
+  app.use passport.initialize()
+  app.use passport.session()
+  app.use app.router
 
 
 checkbasic = (site, req, res, callback) ->
@@ -169,23 +174,25 @@ app.get '/', (req, res) ->
   site = which req, res
   sendsite site, res
 
+app.get '/editok', (req, res) ->
+  res.send 'editok'
+
 app.get '/account', ensureAuthenticated, (req, res) ->
   res.send 'User data: ' + util.inspect req.user
   #res.render 'account', { user: req.user }
 
 app.get '/login', (req, res) ->
+  console.log 'getting login'
   fs.readFile 'login.html', 'utf8', (err, data) ->
     res.send data
 
-app.post '/login', (req, res) ->
-  passport.authenticate 'local', {failureRedirect:'/login', failureFlash: true}, (req, res) ->
-    res.redirect '/edit'
+app.post '/login', ->
+  console.log 'post to login'
+  ret = (req, res) ->
+    console.log 'authenticated ok'
+    res.redirect '/editok'
 
-app.get '/auth/google', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) ->
-  res.redirect '/'
-  
-app.get '/auth/google/return', passport.authenticate('google', { failureRedirect: '/login' }), (req, res) ->
-  res.redirect '/'
+  passport.authenticate('local', {failureRedirect:'/loginNO', failureFlash: false}, ret)
 
 app.get '/logout',(req, res) ->
   req.logout()
@@ -227,7 +234,7 @@ app.post '/savecode', (req, res) ->
         sendbad site, res
    
 
-app.use express.static(__dirname + '/public')
+#app.use express.static(__dirname + '/public')
 
 
 app.listen 8080

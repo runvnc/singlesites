@@ -2,6 +2,7 @@ node_modules
 secrets
 public
 oicbackup.coffee
+templates/*
 nohup.out
 lib-cov
 *.seed
