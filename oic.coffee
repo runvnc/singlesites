@@ -2,65 +2,19 @@ express = require 'express'
 
 fs = require 'fs'
 path = require 'path'
-passport = require 'passport'
-LocalStrategy = require('passport-local').Strategy
 util = require 'util'
+bcrypt = require 'bcrypt'
+child_proc = require 'child_process'
+connect = require 'connect'
 
 domain = 'oic.io'
 
 S4 = ->  (((1+Math.random())*0x10000)|0).toString(16).substring(1)
 process.guid = -> S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4()
 
-users = [
-  { id: 1, username: 'bob', password: 'secret', email: 'bob@example.com' }
-  { id: 2, username: 'joe', password: 'birthday', email: 'joe@example.com' }
-]
 
 launchcodes = {}
 
-
-findById = (id, fn) ->
-  console.log 'find by id'
-  idx = id - 1
-  if users[idx]?
-    fn null, users[idx]
-  else
-    fn new Error('User ' + id + ' does not exist')
-  
-
-findByUsername = (username, fn) ->
-  console.log  'inside of findbyusername'
-  for user in users
-    if user.username is username
-      return fn(null, user)
-  return fn(null, null)
-
-
-passport.serializeUser = (user, done) ->
-  console.log 'serializeuser'
-  done null, user.id
-
-
-passport.deserializeUser = (id, done) ->
-  console.log 'deserializeuser'
-  findById id, (err, user) ->
-    done err, user
-  
-
-passportfunc = (username, password, done) ->
-  console.log 'inside of passportfunc'
-  return
-  process.nextTick ->
-    console.log 'nexttick'
-    findByUsername username, (err, user) ->
-      console.log 'findbyusername returned'
-      if err? then return done(err)
-      if not user? then return done(null, false, {message: 'Unknown user ' + username})
-      if user.password isnt password then return done(null, false, {message: 'Invalid password'})
-      return done(null, user)
-
-passport.use(new LocalStrategy(passportfunc))
- 
 
 #httpsopts =
 #  key: fs.readFileSync('/etc/selfcert/server.key')
@@ -73,6 +27,7 @@ app = express.createServer()
 app.configure ->
   app.use express.cookieParser()
   app.use express.bodyParser()
+  app.use connect.compress()
 #  app.use express.session({ secret: 'choc rain' })
 #  app.use passport.initialize()
 #  app.use passport.session()
@@ -86,13 +41,14 @@ checkbasic = (site, req, res, callback) ->
   parts = auth.split(/:/)
   username = parts[0]
   password = parts[1]
+  
   if not username? or username.length is 0
     sendbad site, res
     return
 
-  fs.readFile 'secrets/'+site+username, 'utf8', (err, data) ->
+  fs.readFile 'secrets/'+site+'_'+username, 'utf8', (err, data) ->
     if err?
-      console.log 'Error reading file ' + 'secrets/'+site+username + ':'
+      console.log 'Error reading file ' + 'secrets/'+site+'_'+ username + ':'
       console.log err
       callback 'none'
     else
@@ -117,15 +73,71 @@ sendbad = (site, res) ->
 sendsite = (site, res) ->
   console.log 'handling site sendsite ' + site
   fs.readFile 'public/' + site + '.html', 'utf8', (err, data) ->
-    if err?  
+    if err?
       console.log 'error in sendsite ' + err
     else
       console.log 'sending data'
       res.send data
 
+
+
+templates = []
+
+resetwww = ->
+  fs.readdir 'public/templates', (err, files) ->
+    console.log 'templates files is'
+    console.log files
+    templates = []
+    s = ''
+    for f in files
+      item = f.replace('.html','')
+      templates.push item
+      s+= '<img class="item" src="thumbs/'+item+'.png" title="'+item+'"/>'
+    fs.readFile 'www.html', 'utf8', (err, data) ->
+      data = data.replace('{{templates}}', s)
+      fs.readdir 'public', (err, files) ->
+         sites = []
+         for f in files
+           if f.indexOf('.html')>0
+             sites.push f
+         sitelist = ''
+         for s in sites
+           x = s.replace('.html','')
+           sitelist += '<li><a href="http://'+x+'.'+domain+'/">'+x+'</a></li>'
+         data = data.replace('{{sites}}', sitelist)
+         fs.writeFile 'public/www.html', data, 'utf8', (err) ->
+
+resetwww()
+
 makepass = (site, req, res) ->
-  fs.readFile 'makepass.html', 'utf8', (err, data) ->
-    res.send data
+  path.exists 'secrets/'+site + '_configured', (exists) ->
+    if exists
+      sendbad site, res
+      #res.send 'User already configured'
+      
+    else
+      fs.readFile 'makepass.html', 'utf8', (err, data) ->
+        res.send data
+
+maketemplate = (site, req, res) ->
+  fs.readFile "public/#{site}.html", 'utf8', (err, data) ->
+    if not err?
+      console.log 'trying to make template thumbnail'
+      child_proc.exec "./thumbsite http://#{site}.#{domain}:8080/ public/thumbs/#{site}.png", (err, so, serr) ->
+        console.log err
+        console.log so
+        console.log serr
+      fs.writeFile "public/templates/#{site}.html", data, 'utf8', (err) ->
+        if not err?
+          if not site in templates
+            templates.push site
+          resetwww()
+          fs.readFile 'templatesaved.html', 'utf8', (err, dat) ->
+            res.send dat
+    else
+      console.log 'Error reading site file in maketemplate'
+      console.log err
+
 
 ensureAuthenticated = (req, res, next) ->
   if req.isAuthenticated()
@@ -154,14 +166,17 @@ savecode = (site, req, res) ->
     res.send 'Saved page.'
 
 launch = (template, sitename, req, res) ->
-  if req.cookies? and req.cookies.referred? and launchcodes[req.cookies.referred]?
-    path.exists 'templates/'+template+'.html', (exists) ->
+  if true || req.cookies? and req.cookies.referred? and launchcodes[req.cookies.referred]?
+    path.exists 'public/templates/'+template+'.html', (exists) ->
       if exists
-        fs.readFile 'templates/'+template+'.html', 'utf8', (err, data) ->
+        fs.readFile 'public/templates/'+template+'.html', 'utf8', (err, data) ->
           if not err?
             fs.writeFile 'public/'+sitename+'.html', data, 'utf8', (err) ->
               if not err?
-                res.redirect 'http://'+sitename + '.' + domain
+                req.theredir = 'http://'+sitename+'.'+domain
+                savepass sitename, req, res
+                resetwww()
+                #res.redirect 'http://'+sitename + '.' + domain
           else
             console.log 'Error reading template file'
             console.log err
@@ -177,11 +192,20 @@ launch = (template, sitename, req, res) ->
 app.post '/launch', (req, res) ->
   launch req.body.template, req.body.site, req, res
 
+app.get '/templatelist', (req, res) ->
+  res.send JSON.stringify(templates)
+
 app.get '/', (req, res) ->
   console.log 'get ok'
   site = which req, res
   console.log 'site is ' + site
   sendsite site, res
+
+app.post '/maketemplate', (req, res) ->
+  site = which req, res
+  checkbasic site, req, res, (ret) ->
+    if ret
+      maketemplate site, req, res
 
 app.get '/editok', (req, res) ->
   res.send 'editok'
@@ -209,27 +233,26 @@ app.get '/logout',(req, res) ->
 
 app.get '/edit', (req, res, next) ->
   site = which req
-  if req.isAuthenticated()
-    console.log 'isauthenticated is true'
-    sendsite site, res
-  else
-    console.log 'isauthenticated is false'
-    res.redirect '/login'
-  #  #if ret is 'none'
-  #  #  makepass site, req, res
-  #  else if ret is true
-  #    sendsite site, res
-  #  else
-  #    sendbad site, res
+  checkbasic site, req, res, (ret) ->
+    if ret is 'none'
+      makepass site, req, res
+    else if ret is true
+      sendsite site, res
+    else
+      sendbad site, res
 
 app.post '/savepass', (req, res) ->
   site = which req
+  savepass site, req, res
+
+savepass = (site, req, res) ->
   path.exists 'secrets/' + site + req.body.username, (exists) ->
     if not exists
       bcrypt.genSalt 10, (err, salt) ->
         bcrypt.hash req.body.password, salt, (err, hash) ->
-          fs.writeFile 'secrets/'+site+req.body.username, hash, 'utf8', (err) ->
-            res.send 'OK'
+          fs.writeFile 'secrets/'+site+'_'+req.body.username, hash, 'utf8', (err) ->
+            fs.writeFile 'secrets/'+site+'_configured', 'ok', 'utf8', ->
+            res.redirect 'http://' + site + '.' + domain + '/'
 
 app.post '/savecode', (req, res) ->
   site = which req
@@ -243,8 +266,10 @@ app.post '/savecode', (req, res) ->
         sendbad site, res
    
 
-#app.use express.static(__dirname + '/public')
+app.use express.static(__dirname + '/public')
 
+process.on 'uncaughtException', (err) ->
+  console.log err
 
 app.listen 8080
 #apps.listen 3000

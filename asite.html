@@ -1,4 +1,4 @@
-<!DOCTYPE html><html><head>
+<!DOCTYPE html><html><!doctype html><html><head>
 <link rel="stylesheet" href="cm/lib/codemirror.css">
 <title>Test Super Test site</title>
 <style type="text/css">
@@ -40,7 +40,7 @@
 <style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style><style type="text/css"></style></head>
 
 <body>
-<a class="edit" style="display: none; ">Edit</a> <button class="save design" style="display: block; ">Save</button><button class="editcode design" style="display: block; ">Edit Code</button><button class="savecode design" style="display: none; ">Save Code</button>
+<a class="edit" style="display: none;">Edit</a> <button class="save design" style="display: block;">Save</button><button class="editcode design" style="display: block;">Edit Code</button><button class="savecode design" style="display: none; ">Save Code</button>
 
   <h1>New Site</h1>
   
@@ -61,6 +61,7 @@ function save() {
     $('.edit').show();
     $('.editcode').attr('style', '');
     $('.save').hide();
+    document.designMode = 'off';
     alert(res);
   });
 }  
@@ -76,6 +77,7 @@ function code() {
     $('.editcode').hide()
     $('.savecode').show();
     $('.savecode').click(function() {
+      document.designMode = 'off';
       $('.editcode').hide();
       $('.CodeMirror').hide();
       $('.design').hide();
@@ -114,4 +116,4 @@ $(document).ready(function() {
 
 
 
-</body></html>
+</body></html></html>

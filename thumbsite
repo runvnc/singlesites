@@ -1,0 +1,4 @@
+#!/bin/bash
+phantomjs rasterize.js $1 $2
+convert "$2" -crop 1024x768+0+0 "$2"
+convert "$2" -filter Lanczos -thumbnail 600x450 "$2"

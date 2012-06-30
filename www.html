@@ -6,31 +6,93 @@
 body, p, input, th, td, div, span, h1, h2, h3, article, section {
   font-family: 'Pontanto Sans', sans-serif;
 }
+body {
+  width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.top {
+/*  width: 500px;
+  margin-left: auto;
+  margin-right: auto;*/
+}
+.globalCaption {
+  color: #000;
+}
+.oichead {
+  color: #2f96bc;
+  font-size: 50pt;
+}
 </style>
 <title>OIC</title>
 </head>
 
 <body>
-<form method="post" action="launch">
-Enter site name:
-<input type="text" id="site" name="site"/>
-<br/><br/>
-Choose Template:
 
-<input type="hidden" name="template" value="asite"/>
-(Blank)
-
+<form method="post" action="launch"  onSubmit="return check()">
+<div class="top">
+<div class="oichead">OIC</div>
+<h1>Create New Site</h1>
+Site: <input type="text" id="site" name="site" size="10" required="required"/>.oic.io&nbsp;&nbsp;Email:<input type="email" name="username" required="required"/>&nbsp;&nbsp; Password:
+<input type="password" name="password" required="required"/> 
+&nbsp;&nbsp;
 <input type="submit" value="Launch Site"/>
 
+
+<br/><br/>
+Choose Template:
+<input type="hidden" id="tmp" name="template" value="asite"/>
+
+</div> <!--top -->
+
+ <div class="ContentFlow" id="ContentFlow1">
+   <div class="loadIndicator"><div class="indicator"></div></div>
+     <div class="flow">{{templates}}
+     </div>
+     <div class="globalCaption"></div>
+     <div class="scrollbar"><div class="slider"><div class="position"></div></div></div>
+</div>
+<div id="templatecont" style="visibility: hidden;"></div>
+
 </form>
+<br/>
+<h2>What Is this?</h2>
+OIC is a free service for hosting web pages/single-page sites/apps.  Each site gets a single HTML file with a built-in editor (you can create multi-page sites using JavaScript). <br/><br/>
+No adult, illegal, etc. content please.
+<br/><br/>
+Existing Sites:<br/>
+<ul>{{sites}}</ul>
+
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js"></script>
+<script language="JavaScript" type="text/javascript" src="ContentFlow/contentflow.js" load="white"></script>
 <script>
-//  $(document).ready(function() {
-//    $('#launcher').click(function() {
-//      $.post('/launch', {sitename: $('#site').val()} , (res) 
-//    });
-//  });
+check = function() {
+  var active = myNewFlow.getActiveItem();
+  var text = $(active.element).find('.caption').text();
+  $('#tmp').val(text);
+  return true;
+}
+
+var myNewFlow;
+
+  $(document).ready(function() {
+    //$.getJSON('templatelist', function(list) {
+       myNewFlow = new ContentFlow('ContentFlow1', { reflectionHeight: 0, scaleFactor: 1.75 } ) ;           
+   //    var s = '';
+   //    for (var i=0; i<list.length; i++) {    
+   //      var x = list[i];
+   //      s+= '<div class="item"><img class="content" src="thumbs/'+x+'.png" /></div>'       
+   //    }
+   //    $('#templatecont').html(s);      
+   //    $('.item').each(function() {
+   //      console.log('adding item');
+   //      console.log($(this)[0]);
+   //      myNewFlow.addItem($(this)[0], 'last');
+   //    }); 
+   // });    
+  });
 </script>
+                   
 </body>
 </html>
 
